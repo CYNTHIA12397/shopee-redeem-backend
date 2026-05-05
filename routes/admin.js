@@ -229,6 +229,39 @@ router.post('/reset-order', adminAuth, async (req, res) => {
 });
 
 // ─────────────────────────────────────────
+// GET /admin/pending-orders
+// 取得所有待兌換訂單
+// ─────────────────────────────────────────
+router.get('/pending-orders', adminAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT order_id, product_name, product_id, created_at 
+       FROM orders WHERE redeemed = false 
+       ORDER BY created_at DESC LIMIT 100`
+    );
+    return res.json({ success: true, orders: result.rows });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: '查詢失敗' });
+  }
+});
+
+
+// ─────────────────────────────────────────
+// DELETE /admin/order/:order_id
+// 刪除單筆訂單
+// ─────────────────────────────────────────
+router.delete('/order/:order_id', adminAuth, async (req, res) => {
+  const orderId = req.params.order_id.toUpperCase();
+  try {
+    await pool.query('DELETE FROM orders WHERE order_id = $1', [orderId]);
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: '刪除失敗' });
+  }
+});
+
+
+// ─────────────────────────────────────────
 // POST /admin/clear-all
 // 清空所有訂單、序號、兌換記錄（危險操作）
 // ─────────────────────────────────────────

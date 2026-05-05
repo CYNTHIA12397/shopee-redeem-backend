@@ -318,12 +318,52 @@
 
   .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px 40px;
+    width: 100%;
+    max-width: 600px;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+  .modal-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+  .modal-close {
+    float: right; background: none; border: none;
+    color: var(--text-muted); font-size: 22px; cursor: pointer; margin-top: -4px;
+  }
+
   /* ── Login wall ── */
   #app { display: none; }
   #loginWall { display: block; }
 </style>
 </head>
 <body>
+
+<!-- 補貨 Modal -->
+<div class="modal-overlay" id="restockModal" onclick="closeRestock(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeRestockBtn()">✕</button>
+    <div class="modal-title" id="restockTitle">補充序號</div>
+    <div class="modal-sub" id="restockSub">輸入要新增的序號</div>
+    <div class="alert alert-success" id="restockSuccess"></div>
+    <div class="alert alert-error" id="restockError"></div>
+    <label>序號</label>
+    <input type="text" id="restockCode" placeholder="例：ABCD-1234-EFGH-5678" style="font-family:'DM Mono',monospace" />
+    <button class="btn" onclick="submitRestock()">➕ 新增序號</button>
+  </div>
+</div>
 
 <!-- Login Wall -->
 <div id="loginWall">
@@ -380,10 +420,18 @@
         ⚠️ 以下商品庫存不足 5 組，請盡快補充！
       </div>
 
+      <div class="card" id="pendingOrdersCard" style="display:none">
+        <div class="card-title">⏳ 待兌換訂單</div>
+        <div id="pendingOrdersList"></div>
+      </div>
+
       <div class="card">
         <div class="card-title">
           📈 總覽
-          <button class="refresh-btn" onclick="loadStats()">↻ 重新整理</button>
+          <div style="display:flex;gap:6px;margin-left:auto">
+            <button class="refresh-btn" onclick="loadStats()">↻ 重新整理</button>
+            <button class="refresh-btn" style="color:var(--error);border-color:rgba(239,68,68,0.3)" onclick="clearAll()">🗑 清空全部</button>
+          </div>
         </div>
         <div class="stats-grid">
           <div class="stat-box">
@@ -442,10 +490,56 @@ order_id,product_name,product_id<br>
 
         <hr class="divider">
 
-        <!-- 方式二：手動輸入 -->
-        <label>方式二：直接貼上內容</label>
-        <textarea id="orderText" placeholder="order_id,product_name,product_id&#10;25050112ABCD,土耳其1000,ITUNE_1000TR"></textarea>
-        <button class="btn secondary" onclick="pasteOrders()">➕ 匯入文字內容</button>
+        <!-- 方式二：快速填入 -->
+        <label>方式二：快速填入訂單</label>
+        <label>選擇商品</label>
+        <select id="orderQuickProduct" onchange="updateOrderPreview()">
+          <optgroup label="🇹🇷 土耳其 TRY">
+            <option value="ITUNE_1000TR">🇹🇷 土耳其 1000 TRY</option>
+            <option value="ITUNE_1500TR">🇹🇷 土耳其 1500 TRY</option>
+            <option value="ITUNE_2000TR">🇹🇷 土耳其 2000 TRY</option>
+          </optgroup>
+          <optgroup label="🇮🇳 印度 INR">
+            <option value="ITUNE_2000INR">🇮🇳 印度 2000 INR</option>
+            <option value="ITUNE_3000INR">🇮🇳 印度 3000 INR</option>
+            <option value="ITUNE_4000INR">🇮🇳 印度 4000 INR</option>
+            <option value="ITUNE_5000INR">🇮🇳 印度 5000 INR</option>
+          </optgroup>
+          <optgroup label="🇳🇬 奈及利亞 NGN">
+            <option value="ITUNE_7200NGN">🇳🇬 奈及利亞 7200 NGN</option>
+            <option value="ITUNE_15000NGN">🇳🇬 奈及利亞 15000 NGN</option>
+            <option value="ITUNE_20000NGN">🇳🇬 奈及利亞 20000 NGN</option>
+          </optgroup>
+          <optgroup label="🇯🇵 日本 JPY">
+            <option value="ITUNE_3000JP">🇯🇵 日本 3000 JPY</option>
+            <option value="ITUNE_5000JP">🇯🇵 日本 5000 JPY</option>
+            <option value="ITUNE_10000JP">🇯🇵 日本 10000 JPY</option>
+            <option value="ITUNE_20000JP">🇯🇵 日本 20000 JPY</option>
+          </optgroup>
+          <optgroup label="🇧🇷 巴西 BRL">
+            <option value="ITUNE_30BRL">🇧🇷 巴西 30 BRL</option>
+            <option value="ITUNE_40BRL">🇧🇷 巴西 40 BRL</option>
+            <option value="ITUNE_75BRL">🇧🇷 巴西 75 BRL</option>
+            <option value="ITUNE_100BRL">🇧🇷 巴西 100 BRL</option>
+          </optgroup>
+          <optgroup label="🇮🇩 印尼 IDR">
+            <option value="ITUNE_300K IDR">🇮🇩 印尼 300K IDR</option>
+            <option value="ITUNE_600K IDR">🇮🇩 印尼 600K IDR</option>
+          </optgroup>
+          <optgroup label="🇹🇭 泰國 THB">
+            <option value="ITUNE_300THB">🇹🇭 泰國 300 THB</option>
+            <option value="ITUNE_500THB">🇹🇭 泰國 500 THB</option>
+            <option value="ITUNE_800THB">🇹🇭 泰國 800 THB</option>
+          </optgroup>
+          <optgroup label="🇵🇭 菲律賓 PHP">
+            <option value="ITUNE_500P">🇵🇭 菲律賓 500 PHP</option>
+            <option value="ITUNE_1000P">🇵🇭 菲律賓 1000 PHP</option>
+          </optgroup>
+        </select>
+        <label>訂單編號（每行一筆，可一次貼多筆）</label>
+        <textarea id="orderQuickIds" placeholder="25050112ABCD&#10;25050134EFGH&#10;25050156MNOP" style="min-height:100px" oninput="updateOrderPreview()"></textarea>
+        <div class="quick-help" id="orderPreview" style="margin-bottom:12px;display:none"></div>
+        <button class="btn secondary" onclick="quickAddOrders()">➕ 快速匯入訂單</button>
       </div>
 
       <div class="card">
@@ -592,6 +686,100 @@ ITUNE_7200NGN,1111-AAAA-2222-BBBB
 const API = 'https://shopee-redeem-backend-production.up.railway.app';
 let ADMIN_KEY = '';
 
+// ── Delete Order ───────────────────────────
+async function deleteOrder(orderId) {
+  if (!confirm(`確定要刪除訂單 ${orderId}？`)) return;
+  try {
+    const res = await fetch(`${API}/admin/order/${orderId}`, {
+      method: 'DELETE',
+      headers: { 'x-admin-key': ADMIN_KEY }
+    });
+    const d = await res.json();
+    if (d.success) { loadStats(); }
+    else { alert('刪除失敗：' + (d.error || '未知錯誤')); }
+  } catch(e) { alert('網路錯誤'); }
+}
+
+// ── Delete Product ─────────────────────────
+async function deleteProduct(productId, productName) {
+  if (!confirm(`確定要刪除「${productName}」的所有序號？\n此操作無法復原！`)) return;
+  try {
+    const res = await fetch(`${API}/admin/product/${encodeURIComponent(productId)}`, {
+      method: 'DELETE',
+      headers: { 'x-admin-key': ADMIN_KEY }
+    });
+    const d = await res.json();
+    if (d.success) {
+      loadStats();
+    } else {
+      alert('刪除失敗：' + (d.error || '未知錯誤'));
+    }
+  } catch(e) { alert('網路錯誤'); }
+}
+
+// ── Clear All ──────────────────────────────
+async function clearAll() {
+  if (!confirm('⚠️ 確定要清空所有訂單、序號和兌換記錄？\n此操作完全無法復原！')) return;
+  if (!confirm('再次確認：真的要清空全部資料嗎？')) return;
+  try {
+    const res = await fetch(`${API}/admin/clear-all`, {
+      method: 'POST',
+      headers: { 'x-admin-key': ADMIN_KEY }
+    });
+    const d = await res.json();
+    if (d.success) {
+      loadStats();
+    } else {
+      alert('清空失敗：' + (d.error || '未知錯誤'));
+    }
+  } catch(e) { alert('網路錯誤'); }
+}
+
+// ── Restock Modal ──────────────────────────
+let restockProductId = '';
+
+function quickAddFromStats(productId, productName) {
+  restockProductId = productId;
+  document.getElementById('restockTitle').textContent = '➕ 補充序號';
+  document.getElementById('restockSub').textContent = productName;
+  document.getElementById('restockCode').value = '';
+  document.getElementById('restockSuccess').classList.remove('show');
+  document.getElementById('restockError').classList.remove('show');
+  document.getElementById('restockModal').classList.add('show');
+  setTimeout(() => document.getElementById('restockCode').focus(), 300);
+}
+
+function closeRestock(e) {
+  if (e.target === document.getElementById('restockModal')) closeRestockBtn();
+}
+function closeRestockBtn() {
+  document.getElementById('restockModal').classList.remove('show');
+  loadStats();
+}
+
+async function submitRestock() {
+  const code = document.getElementById('restockCode').value.trim();
+  if (!code) return showAlert('restockError', '請輸入序號');
+  const csv = `product_id,code\n${restockProductId},${code}`;
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const fd = new FormData();
+  fd.append('file', blob, 'code.csv');
+  try {
+    const res = await fetch(`${API}/admin/import/codes`, {
+      method: 'POST', headers: { 'x-admin-key': ADMIN_KEY }, body: fd
+    });
+    const d = await res.json();
+    if (d.success && d.imported > 0) {
+      showAlert('restockSuccess', `✅ 序號新增成功！`);
+      document.getElementById('restockCode').value = '';
+    } else if (d.skipped > 0) {
+      showAlert('restockError', '此序號已存在，請確認是否重複。');
+    } else {
+      showAlert('restockError', d.error || '新增失敗');
+    }
+  } catch(e) { showAlert('restockError', '網路錯誤'); }
+}
+
 // ── Login ──────────────────────────────────
 function doLogin() {
   const key = document.getElementById('adminKeyInput').value.trim();
@@ -643,11 +831,31 @@ async function loadStats() {
 
     // Product list
     const productNames = {
-      'ITUNE_1000TR': '土耳其 1000 TRY',
-      'ITUNE_1500TR': '土耳其 1500 TRY',
-      'ITUNE_2000TR': '土耳其 2000 TRY',
-      'ITUNE_7200NGN': '奈及利亞 7200 NGN',
-      'ITUNE_15000NGN': '奈及利亞 15000 NGN',
+      'ITUNE_1000TR': '🇹🇷 土耳其 1000 TRY',
+      'ITUNE_1500TR': '🇹🇷 土耳其 1500 TRY',
+      'ITUNE_2000TR': '🇹🇷 土耳其 2000 TRY',
+      'ITUNE_2000INR': '🇮🇳 印度 2000 INR',
+      'ITUNE_3000INR': '🇮🇳 印度 3000 INR',
+      'ITUNE_4000INR': '🇮🇳 印度 4000 INR',
+      'ITUNE_5000INR': '🇮🇳 印度 5000 INR',
+      'ITUNE_7200NGN': '🇳🇬 奈及利亞 7200 NGN',
+      'ITUNE_15000NGN': '🇳🇬 奈及利亞 15000 NGN',
+      'ITUNE_20000NGN': '🇳🇬 奈及利亞 20000 NGN',
+      'ITUNE_3000JP': '🇯🇵 日本 3000 JPY',
+      'ITUNE_5000JP': '🇯🇵 日本 5000 JPY',
+      'ITUNE_10000JP': '🇯🇵 日本 10000 JPY',
+      'ITUNE_20000JP': '🇯🇵 日本 20000 JPY',
+      'ITUNE_30BRL': '🇧🇷 巴西 30 BRL',
+      'ITUNE_40BRL': '🇧🇷 巴西 40 BRL',
+      'ITUNE_75BRL': '🇧🇷 巴西 75 BRL',
+      'ITUNE_100BRL': '🇧🇷 巴西 100 BRL',
+      'ITUNE_300K IDR': '🇮🇩 印尼 300K IDR',
+      'ITUNE_600K IDR': '🇮🇩 印尼 600K IDR',
+      'ITUNE_300THB': '🇹🇭 泰國 300 THB',
+      'ITUNE_500THB': '🇹🇭 泰國 500 THB',
+      'ITUNE_800THB': '🇹🇭 泰國 800 THB',
+      'ITUNE_500P': '🇵🇭 菲律賓 500 PHP',
+      'ITUNE_1000P': '🇵🇭 菲律賓 1000 PHP',
     };
 
     let lowStockItems = [];
@@ -662,13 +870,33 @@ async function loadStats() {
             <div class="product-name">${name}</div>
             <div class="product-id">${c.product_id}</div>
           </div>
-          <span class="stock-badge ${badgeClass}">${avail} 組</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="stock-badge ${badgeClass}">${avail} 組</span>
+            <button onclick="quickAddFromStats('${c.product_id}','${name}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--accent);font-size:13px;padding:4px 10px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap">➕</button>
+            <button onclick="deleteProduct('${c.product_id}','${name}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--error);font-size:13px;padding:4px 10px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap">🗑</button>
+          </div>
         </div>`;
     }).join('');
 
     document.getElementById('productList').innerHTML = html || '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">尚無序號資料</div>';
 
-    const banner = document.getElementById('lowStockBanner');
+    // Load pending orders
+    const pendingRes = await fetch(`${API}/admin/pending-orders`, { headers: { 'x-admin-key': ADMIN_KEY } });
+    const pendingData = await pendingRes.json();
+    if (pendingData.success && pendingData.orders.length > 0) {
+      const pendingHtml = pendingData.orders.map(o => `
+        <div class="product-row">
+          <div>
+            <div class="product-name" style="font-family:'DM Mono',monospace;font-size:13px">${o.order_id}</div>
+            <div class="product-id">${o.product_name} · <span style="color:var(--accent)">${o.product_id}</span></div>
+          </div>
+          <button onclick="deleteOrder('${o.order_id}')" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--error);font-size:12px;padding:4px 8px;cursor:pointer;font-family:'DM Sans',sans-serif;flex-shrink:0">🗑</button>
+        </div>`).join('');
+      document.getElementById('pendingOrdersList').innerHTML = pendingHtml;
+      document.getElementById('pendingOrdersCard').style.display = 'block';
+    } else {
+      document.getElementById('pendingOrdersCard').style.display = 'none';
+    }
     if (lowStockItems.length > 0) {
       banner.textContent = '⚠️ 庫存不足 5 組：' + lowStockItems.join('、');
       banner.classList.add('show');
@@ -682,6 +910,42 @@ async function loadStats() {
 function fileSelected(inputId, nameId) {
   const f = document.getElementById(inputId).files[0];
   if (f) document.getElementById(nameId).textContent = '✓ ' + f.name;
+}
+
+// ── Quick Add Orders ───────────────────────
+const PRODUCT_LABELS = {
+  'ITUNE_1000TR':'🇹🇷 土耳其 1000 TRY','ITUNE_1500TR':'🇹🇷 土耳其 1500 TRY','ITUNE_2000TR':'🇹🇷 土耳其 2000 TRY',
+  'ITUNE_2000INR':'🇮🇳 印度 2000 INR','ITUNE_3000INR':'🇮🇳 印度 3000 INR','ITUNE_4000INR':'🇮🇳 印度 4000 INR','ITUNE_5000INR':'🇮🇳 印度 5000 INR',
+  'ITUNE_7200NGN':'🇳🇬 奈及利亞 7200 NGN','ITUNE_15000NGN':'🇳🇬 奈及利亞 15000 NGN','ITUNE_20000NGN':'🇳🇬 奈及利亞 20000 NGN',
+  'ITUNE_3000JP':'🇯🇵 日本 3000 JPY','ITUNE_5000JP':'🇯🇵 日本 5000 JPY','ITUNE_10000JP':'🇯🇵 日本 10000 JPY','ITUNE_20000JP':'🇯🇵 日本 20000 JPY',
+  'ITUNE_30BRL':'🇧🇷 巴西 30 BRL','ITUNE_40BRL':'🇧🇷 巴西 40 BRL','ITUNE_75BRL':'🇧🇷 巴西 75 BRL','ITUNE_100BRL':'🇧🇷 巴西 100 BRL',
+  'ITUNE_300K IDR':'🇮🇩 印尼 300K IDR','ITUNE_600K IDR':'🇮🇩 印尼 600K IDR',
+  'ITUNE_300THB':'🇹🇭 泰國 300 THB','ITUNE_500THB':'🇹🇭 泰國 500 THB','ITUNE_800THB':'🇹🇭 泰國 800 THB',
+  'ITUNE_500P':'🇵🇭 菲律賓 500 PHP','ITUNE_1000P':'🇵🇭 菲律賓 1000 PHP',
+};
+
+function updateOrderPreview() {
+  const pid = document.getElementById('orderQuickProduct').value;
+  const ids = document.getElementById('orderQuickIds').value.trim().split('\n').filter(l => l.trim());
+  const preview = document.getElementById('orderPreview');
+  if (ids.length === 0) { preview.style.display = 'none'; return; }
+  const label = PRODUCT_LABELS[pid] || pid;
+  preview.innerHTML = `預覽（共 ${ids.length} 筆）：<br>` + ids.slice(0,3).map(id => `${id.trim()} → ${label}`).join('<br>') + (ids.length > 3 ? `<br>...還有 ${ids.length-3} 筆` : '');
+  preview.style.display = 'block';
+}
+
+async function quickAddOrders() {
+  const pid = document.getElementById('orderQuickProduct').value;
+  const label = PRODUCT_LABELS[pid] || pid;
+  const ids = document.getElementById('orderQuickIds').value.trim().split('\n').filter(l => l.trim());
+  if (ids.length === 0) return showAlert('orderError', '請輸入至少一筆訂單編號');
+  const csv = `order_id,product_name,product_id\n` + ids.map(id => `${id.trim()},${label},${pid}`).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const fd = new FormData();
+  fd.append('file', blob, 'orders.csv');
+  await doUpload('orderUploadBtn', 'orderSuccess', 'orderError', `${API}/admin/import/orders`, fd, '訂單');
+  document.getElementById('orderQuickIds').value = '';
+  document.getElementById('orderPreview').style.display = 'none';
 }
 
 // ── Upload Orders (CSV) ────────────────────
