@@ -228,4 +228,43 @@ router.post('/reset-order', adminAuth, async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────
+// POST /admin/clear-all
+// 清空所有訂單、序號、兌換記錄（危險操作）
+// ─────────────────────────────────────────
+router.post('/clear-all', adminAuth, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM redemption_logs');
+    await client.query('DELETE FROM codes');
+    await client.query('DELETE FROM orders');
+    await client.query('COMMIT');
+    return res.json({ success: true, message: '已清空所有資料' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    return res.status(500).json({ success: false, error: '清空失敗：' + err.message });
+  } finally {
+    client.release();
+  }
+});
+
+
+// ─────────────────────────────────────────
+// DELETE /admin/product/:product_id
+// 刪除指定商品的所有序號
+// ─────────────────────────────────────────
+router.delete('/product/:product_id', adminAuth, async (req, res) => {
+  const productId = req.params.product_id;
+  try {
+    const result = await pool.query(
+      'DELETE FROM codes WHERE product_id = $1',
+      [productId]
+    );
+    return res.json({ success: true, deleted: result.rowCount });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: '刪除失敗：' + err.message });
+  }
+});
+
 module.exports = router;
