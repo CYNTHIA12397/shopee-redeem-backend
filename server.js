@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 // ── 安全性中間件 ──
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: '*',
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type', 'x-admin-key']
 }));
