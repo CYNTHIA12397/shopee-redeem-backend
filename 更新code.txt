@@ -1,0 +1,8 @@
+# 匯入訂單
+curl -X POST https://shopee-redeem-backend-production.up.railway.app/admin/import/orders -H "x-admin-key: annie401" -F "file=@蝦皮訂單.csv"
+
+# 匯入序號
+curl -X POST https://shopee-redeem-backend-production.up.railway.app/admin/import/codes -H "x-admin-key: annie401" -F "file=@序號整理.csv"
+
+#確認庫存
+curl https://shopee-redeem-backend-production.up.railway.app/admin/stats -H "x-admin-key: annie401"

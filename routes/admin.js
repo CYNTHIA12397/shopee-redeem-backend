@@ -173,4 +173,59 @@ router.get('/stats', adminAuth, async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────
+// GET /admin/order/:order_id
+// 查詢單筆訂單詳情
+// ─────────────────────────────────────────
+router.get('/order/:order_id', adminAuth, async (req, res) => {
+  const orderId = req.params.order_id.toUpperCase();
+  try {
+    const result = await pool.query(
+      'SELECT * FROM orders WHERE order_id = $1',
+      [orderId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: '找不到此訂單' });
+    }
+    return res.json({ success: true, order: result.rows[0] });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: '查詢失敗' });
+  }
+});
+
+
+// ─────────────────────────────────────────
+// POST /admin/reset-order
+// 重置訂單為未兌換（客服用）
+// ─────────────────────────────────────────
+router.post('/reset-order', adminAuth, async (req, res) => {
+  const { order_id } = req.body;
+  if (!order_id) return res.status(400).json({ success: false, error: '缺少訂單編號' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 釋放已分配的序號
+    await client.query(
+      'UPDATE codes SET used = false, order_id = NULL, assigned_at = NULL WHERE order_id = $1',
+      [order_id.toUpperCase()]
+    );
+
+    // 重置訂單狀態
+    await client.query(
+      'UPDATE orders SET redeemed = false, redeemed_at = NULL, status = $1 WHERE order_id = $2',
+      ['paid', order_id.toUpperCase()]
+    );
+
+    await client.query('COMMIT');
+    return res.json({ success: true });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    return res.status(500).json({ success: false, error: '重置失敗' });
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;
