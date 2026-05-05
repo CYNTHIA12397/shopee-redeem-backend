@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>自助兌換中心</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --surface: #161618;
+    --surface2: #1e1e21;
+    --border: #2a2a2e;
+    --accent: #ee4d2d;
+    --accent-glow: rgba(238,77,45,0.25);
+    --accent2: #ff7750;
+    --text: #f0f0f2;
+    --text-muted: #888;
+    --success: #22c55e;
+    --success-glow: rgba(34,197,94,0.2);
+    --error: #ef4444;
+    --error-glow: rgba(239,68,68,0.2);
+    --warning: #f59e0b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Background grid ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(238,77,45,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(238,77,45,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Glow orbs ── */
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .orb-1 { width: 400px; height: 400px; background: rgba(238,77,45,0.12); top: -100px; right: -100px; }
+  .orb-2 { width: 300px; height: 300px; background: rgba(255,119,80,0.08); bottom: 100px; left: -80px; }
+
+  /* ── Layout ── */
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 40px 20px 60px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── Logo / Header ── */
+  .logo-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .logo-icon {
+    width: 44px;
+    height: 44px;
+    background: var(--accent);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 0 24px var(--accent-glow);
+  }
+  .logo-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  .logo-text span { color: var(--accent); }
+
+  .tagline {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 40px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── Card ── */
+  .card {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.6;
+  }
+
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 24px;
+  }
+
+  /* ── Steps ── */
+  .steps {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 28px;
+  }
+  .step {
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border);
+    transition: background 0.4s;
+  }
+  .step.active { background: var(--accent); }
+  .step.done { background: var(--success); }
+
+  /* ── Form ── */
+  .form-group { margin-bottom: 20px; }
+
+  label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  label .required { color: var(--accent); margin-left: 2px; }
+
+  .input-wrap {
+    position: relative;
+  }
+  .input-wrap .prefix {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px 14px 40px;
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    color: var(--text);
+    letter-spacing: 1px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  input[type="text"]::placeholder { color: var(--text-muted); letter-spacing: 0; font-family: 'Noto Sans TC', sans-serif; font-size: 13px; }
+  input[type="text"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  input[type="text"].error-input {
+    border-color: var(--error);
+    box-shadow: 0 0 0 3px var(--error-glow);
+  }
+
+  .hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+
+  /* ── Button ── */
+  .btn {
+    width: 100%;
+    padding: 15px;
+    background: var(--accent);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    letter-spacing: 1px;
+  }
+  .btn:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 8px 24px var(--accent-glow); }
+  .btn:active { transform: translateY(0); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn.loading::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
+    animation: shimmer 1.2s infinite;
+  }
+  @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    margin-top: 10px;
+    font-size: 13px;
+    padding: 11px;
+  }
+  .btn-outline:hover { border-color: var(--text-muted); color: var(--text); background: var(--surface2); transform: none; box-shadow: none; }
+
+  /* ── Alert ── */
+  .alert {
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 13px;
+    margin-bottom: 20px;
+    display: none;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.5;
+  }
+  .alert.show { display: flex; }
+  .alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .alert-error { background: var(--error-glow); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; }
+  .alert-success { background: var(--success-glow); border: 1px solid rgba(34,197,94,0.3); color: #86efac; }
+  .alert-warning { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); color: #fcd34d; }
+
+  /* ── Product preview ── */
+  .product-preview {
+    display: none;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 20px;
+    animation: fadeUp 0.3s ease;
+  }
+  .product-preview.show { display: block; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .preview-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+  }
+  .preview-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .preview-row:last-child { border-bottom: none; }
+  .preview-key { color: var(--text-muted); }
+  .preview-val { font-weight: 600; font-family: 'Space Mono', monospace; font-size: 12px; color: var(--text); }
+  .preview-val.highlight { color: var(--accent); }
+  .preview-val.success { color: var(--success); }
+
+  /* ── Result card (step 2) ── */
+  .result-card {
+    display: none;
+    animation: fadeUp 0.4s ease;
+  }
+  .result-card.show { display: block; }
+
+  .result-badge {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .result-icon {
+    width: 72px;
+    height: 72px;
+    background: var(--success-glow);
+    border: 2px solid rgba(34,197,94,0.4);
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin-bottom: 14px;
+    animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.1s both;
+  }
+  @keyframes pop {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .result-title {
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--success);
+    margin-bottom: 4px;
+  }
+  .result-subtitle { font-size: 13px; color: var(--text-muted); }
+
+  .reward-box {
+    background: var(--surface2);
+    border: 1px solid rgba(34,197,94,0.25);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  .reward-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+  .reward-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: 3px;
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 14px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    user-select: all;
+  }
+  .reward-value:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 16px var(--accent-glow);
+  }
+  .reward-hint { font-size: 11px; color: var(--text-muted); margin-top: 10px; }
+
+  .copy-toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--success);
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .copy-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ── Footer ── */
+  .footer {
+    margin-top: 32px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+  .footer a { color: var(--accent); text-decoration: none; }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 20px 0;
+  }
+
+  /* ── Shopee badge ── */
+  .shopee-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(238,77,45,0.1);
+    border: 1px solid rgba(238,77,45,0.25);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--accent2);
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+
+  /* ── Tutorial card ── */
+  .tutorial-card {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px 32px;
+    margin-top: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .tutorial-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255,119,80,0.5), transparent);
+  }
+  .tutorial-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    gap: 12px;
+  }
+  .tutorial-toggle-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .tutorial-toggle-icon {
+    width: 32px;
+    height: 32px;
+    background: rgba(238,77,45,0.12);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .tutorial-toggle-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .tutorial-toggle-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 1px;
+  }
+  .tutorial-chevron {
+    color: var(--text-muted);
+    font-size: 18px;
+    transition: transform 0.3s;
+    flex-shrink: 0;
+  }
+  .tutorial-chevron.open { transform: rotate(180deg); }
+
+  .tutorial-body {
+    display: none;
+    margin-top: 22px;
+  }
+  .tutorial-body.show { display: block; animation: fadeUp 0.25s ease; }
+
+  .tutorial-platform {
+    margin-bottom: 22px;
+  }
+  .tutorial-platform-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent2);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tutorial-platform-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .tut-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .tut-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .tut-num {
+    width: 24px;
+    height: 24px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .tut-text {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .tut-text strong { color: var(--accent2); font-weight: 600; }
+  .tut-text code {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text);
+  }
+
+  .tut-divider {
+    border: none;
+    border-top: 1px dashed var(--border);
+    margin: 18px 0;
+  }
+
+  .tut-note {
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: #fcd34d;
+    line-height: 1.6;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 480px) {
+    .card { padding: 22px 18px; }
+    .tutorial-card { padding: 22px 18px; }
+    .reward-value { font-size: 20px; letter-spacing: 2px; }
+  }
+</style>
+</head>
+<body>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="container">
+  <!-- Logo -->
+  <div class="logo-wrap">
+    <div class="logo-icon">🎁</div>
+    <div class="logo-text">REDEEM<span>.</span></div>
+  </div>
+  <div class="tagline">蝦皮訂單自助兌換中心</div>
+
+  <!-- Main Card -->
+  <div class="card" id="mainCard">
+    <!-- Step indicator -->
+    <div class="steps">
+      <div class="step active" id="step1"></div>
+      <div class="step" id="step2"></div>
+    </div>
+
+    <!-- Shopee badge -->
+    <div class="shopee-badge">
+      🛒 Shopee 蝦皮購物 · 訂單兌換
+    </div>
+
+    <!-- Step 1: Input form -->
+    <div id="formView">
+      <div class="card-title">輸入訂單資料</div>
+
+      <div class="alert alert-error" id="alertError">
+        <span class="alert-icon">⚠️</span>
+        <span id="alertErrorMsg">訂單編號錯誤，請確認後再試。</span>
+      </div>
+
+      <div class="form-group">
+        <label>蝦皮訂單編號 <span class="required">*</span></label>
+        <div class="input-wrap">
+          <span class="prefix">#</span>
+          <input type="text" id="orderInput" placeholder="例：250429ABCDEF" maxlength="30" />
+        </div>
+        <div class="hint">訂單編號可在蝦皮 App「我的訂單」中找到</div>
+      </div>
+
+      <!-- Preview area (shows after first verification) -->
+      <div class="product-preview" id="productPreview">
+        <div class="preview-label">📦 訂單內容確認</div>
+        <div class="preview-row">
+          <span class="preview-key">訂單編號</span>
+          <span class="preview-val" id="previewOrder">—</span>
+        </div>
+        <div class="preview-row">
+          <span class="preview-key">商品名稱</span>
+          <span class="preview-val" id="previewName">—</span>
+        </div>
+        <div class="preview-row">
+          <span class="preview-key">訂單狀態</span>
+          <span class="preview-val success" id="previewStatus">—</span>
+        </div>
+        <div class="preview-row">
+          <span class="preview-key">兌換狀態</span>
+          <span class="preview-val highlight" id="previewRedeem">—</span>
+        </div>
+      </div>
+
+      <div class="alert alert-warning" id="alertWarning">
+        <span class="alert-icon">🔔</span>
+        <span id="alertWarningMsg">此訂單已兌換過，如有疑問請聯繫客服。</span>
+      </div>
+
+      <button class="btn" id="verifyBtn" onclick="handleVerify()">
+        🔍 查詢訂單
+      </button>
+      <button class="btn btn-outline" id="confirmBtn" onclick="handleConfirm()" style="display:none">
+        ✅ 確認兌換
+      </button>
+    </div>
+
+    <!-- Step 2: Result -->
+    <div class="result-card" id="resultView">
+      <div class="result-badge">
+        <div class="result-icon">✓</div>
+        <div class="result-title">兌換成功！</div>
+        <div class="result-subtitle" id="resultSubtitle">恭喜！您的商品已成功兌換</div>
+      </div>
+
+      <div class="reward-box">
+        <div class="reward-label">🎁 您的兌換內容</div>
+        <div class="reward-value" id="rewardValue" onclick="copyReward(this)">
+          XXXX-XXXX-XXXX
+        </div>
+        <div class="reward-hint">點擊序號可複製 · 請妥善保存</div>
+      </div>
+
+      <div class="preview-row" style="padding: 8px 0; border-bottom: 1px solid var(--border);">
+        <span class="preview-key" style="font-size:13px;">兌換商品</span>
+        <span class="preview-val" id="resultProductName" style="font-size:12px;">—</span>
+      </div>
+      <div class="preview-row" style="padding: 8px 0; border-bottom: 1px solid var(--border);">
+        <span class="preview-key" style="font-size:13px;">兌換時間</span>
+        <span class="preview-val" id="resultTime" style="font-size:12px;">—</span>
+      </div>
+      <div class="preview-row" style="padding: 8px 0;">
+        <span class="preview-key" style="font-size:13px;">訂單編號</span>
+        <span class="preview-val" id="resultOrder" style="font-size:12px;">—</span>
+      </div>
+
+      <hr class="divider">
+      <button class="btn btn-outline" onclick="resetForm()">🔄 兌換另一個訂單</button>
+    </div>
+  </div>
+
+  <!-- Tutorial Card -->
+  <div class="tutorial-card">
+    <div class="tutorial-toggle" onclick="toggleTutorial()">
+      <div class="tutorial-toggle-left">
+        <div class="tutorial-toggle-icon">📖</div>
+        <div>
+          <div class="tutorial-toggle-title">如何查詢蝦皮訂單編號？</div>
+          <div class="tutorial-toggle-sub">App / 網頁版 查詢步驟教學</div>
+        </div>
+      </div>
+      <div class="tutorial-chevron" id="tutChevron">▾</div>
+    </div>
+
+    <div class="tutorial-body" id="tutBody">
+
+      <!-- App 教學 -->
+      <div class="tutorial-platform">
+        <div class="tutorial-platform-title">📱 蝦皮 App（手機）</div>
+        <div class="tut-steps">
+          <div class="tut-step">
+            <div class="tut-num">1</div>
+            <div class="tut-text">開啟蝦皮 App，點擊右下角 <strong>「我」</strong> 圖示</div>
+          </div>
+          <div class="tut-step">
+            <div class="tut-num">2</div>
+            <div class="tut-text">點擊 <strong>「我的訂單」</strong>，選擇 <strong>「待評價」</strong> 或 <strong>「全部」</strong> 分頁</div>
+          </div>
+          <div class="tut-step">
+            <div class="tut-num">3</div>
+            <div class="tut-text">找到您購買的商品，點進訂單詳情頁</div>
+          </div>
+          <div class="tut-step">
+            <div class="tut-num">4</div>
+            <div class="tut-text">頁面上方可看到 <strong>「訂單編號」</strong>，格式如 <code>25042912ABCDEF</code>，長按即可複製</div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="tut-divider">
+
+      <!-- 網頁版教學 -->
+      <div class="tutorial-platform">
+        <div class="tutorial-platform-title">💻 蝦皮網頁版（電腦）</div>
+        <div class="tut-steps">
+          <div class="tut-step">
+            <div class="tut-num">1</div>
+            <div class="tut-text">前往 <strong>shopee.tw</strong> 並登入帳號</div>
+          </div>
+          <div class="tut-step">
+            <div class="tut-num">2</div>
+            <div class="tut-text">點擊右上角 <strong>「帳號」→「我的訂單」</strong></div>
+          </div>
+          <div class="tut-step">
+            <div class="tut-num">3</div>
+            <div class="tut-text">找到對應訂單，點擊 <strong>「詳細內容」</strong> 或直接點進訂單</div>
+          </div>
+          <div class="tut-step">
+            <div class="tut-num">4</div>
+            <div class="tut-text">訂單頁面右上方會顯示 <strong>「訂單編號」</strong>，點擊旁邊的複製圖示即可複製</div>
+          </div>
+        </div>
+      </div>
+
+      <hr class="tut-divider">
+
+      <div class="tut-note">
+        <span>💡</span>
+        <span>訂單編號通常為 <strong>12～14 位英數字混合</strong>，例如 <code>250429ABCDEF</code>。請確認複製的是「訂單編號」而非「商品編號」或「賣場編號」。</span>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer">
+    遇到問題？<a href="#">聯繫客服</a> · 此系統與蝦皮購物合作提供服務<br>
+    訂單資料僅用於驗證兌換身份
+  </div>
+</div>
+
+<!-- Copy toast -->
+<div class="copy-toast" id="copyToast">✓ 已複製到剪貼簿</div>
+
+<script>
+  // ──────────────────────────────────────────────
+  // 後端 API 設定
+  // ──────────────────────────────────────────────
+  const API_BASE = 'https://shopee-redeem-backend-production.up.railway.app';
+
+  let currentOrder = null;
+
+  async function handleVerify() {
+    const orderId = document.getElementById('orderInput').value.trim().toUpperCase();
+    hideAlerts();
+    if (!orderId) return showError('請輸入訂單編號');
+
+    const btn = document.getElementById('verifyBtn');
+    btn.disabled = true;
+    btn.classList.add('loading');
+    btn.textContent = '查詢中…';
+
+    try {
+      const res = await fetch(`${API_BASE}/api/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: orderId })
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        showError(data.error);
+        btn.textContent = '🔍 查詢訂單';
+        return;
+      }
+
+      // 儲存 token（5 分鐘內有效）
+      window._redeemToken = data.token;
+      currentOrder = { id: data.order_id, productName: data.product_name, redeemed: data.redeemed };
+
+      document.getElementById('previewOrder').textContent = '#' + data.order_id;
+      document.getElementById('previewName').textContent = data.product_name;
+      document.getElementById('previewStatus').textContent = '✓ 已付款';
+      document.getElementById('previewRedeem').textContent = data.redeemed ? '⚠ 已兌換' : '● 待兌換';
+      document.getElementById('productPreview').classList.add('show');
+
+      if (data.redeemed) {
+        document.getElementById('alertWarningMsg').textContent = '此訂單已兌換過，如有疑問請聯繫客服。';
+        document.getElementById('alertWarning').classList.add('show');
+        btn.textContent = '🔍 查詢訂單';
+        document.getElementById('confirmBtn').style.display = 'none';
+      } else {
+        btn.textContent = '🔄 重新查詢';
+        document.getElementById('confirmBtn').style.display = 'block';
+      }
+
+    } catch (err) {
+      showError('網路錯誤，請稍後再試。');
+      btn.textContent = '🔍 查詢訂單';
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+    }
+  }
+
+  async function handleConfirm() {
+    if (!currentOrder || !window._redeemToken) return;
+
+    const btn = document.getElementById('confirmBtn');
+    btn.disabled = true;
+    btn.classList.add('loading');
+    btn.textContent = '兌換處理中…';
+
+    try {
+      const res = await fetch(`${API_BASE}/api/redeem`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: window._redeemToken })
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        showError(data.error);
+        btn.disabled = false;
+        btn.classList.remove('loading');
+        btn.textContent = '✅ 確認兌換';
+        return;
+      }
+
+      // 兌換成功，顯示序號
+      document.getElementById('rewardValue').textContent = data.code;
+      document.getElementById('resultProductName').textContent = data.product_name;
+      document.getElementById('resultTime').textContent = new Date(data.redeemed_at).toLocaleString('zh-TW');
+      document.getElementById('resultOrder').textContent = '#' + data.order_id;
+      document.getElementById('resultSubtitle').textContent = `您的「${data.product_name}」已成功兌換`;
+
+      document.getElementById('step1').classList.add('done');
+      document.getElementById('step2').classList.add('active');
+      document.getElementById('formView').style.display = 'none';
+      document.getElementById('resultView').classList.add('show');
+      window._redeemToken = null;
+
+    } catch (err) {
+      showError('網路錯誤，請稍後再試。');
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      btn.textContent = '✅ 確認兌換';
+    }
+  }
+
+  function resetForm() {
+    currentOrder = null;
+    window._redeemToken = null;
+    document.getElementById('orderInput').value = '';
+    document.getElementById('productPreview').classList.remove('show');
+    document.getElementById('confirmBtn').style.display = 'none';
+    document.getElementById('verifyBtn').textContent = '🔍 查詢訂單';
+    document.getElementById('formView').style.display = 'block';
+    document.getElementById('resultView').classList.remove('show');
+    document.getElementById('step1').classList.remove('done');
+    document.getElementById('step1').classList.add('active');
+    document.getElementById('step2').classList.remove('active');
+    hideAlerts();
+  }
+
+  function showError(msg) {
+    document.getElementById('alertErrorMsg').textContent = msg;
+    document.getElementById('alertError').classList.add('show');
+    document.getElementById('orderInput').classList.add('error-input');
+  }
+
+  function hideAlerts() {
+    document.getElementById('alertError').classList.remove('show');
+    document.getElementById('alertWarning').classList.remove('show');
+    document.getElementById('orderInput').classList.remove('error-input');
+  }
+
+  function copyReward(el) {
+    const text = el.textContent.trim();
+    navigator.clipboard.writeText(text).then(() => {
+      const toast = document.getElementById('copyToast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    });
+  }
+
+  // Enter key support
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const confirmBtn = document.getElementById('confirmBtn');
+      if (confirmBtn.style.display !== 'none') {
+        handleConfirm();
+      } else {
+        handleVerify();
+      }
+    }
+  });
+
+  function toggleTutorial() {
+    const body = document.getElementById('tutBody');
+    const chevron = document.getElementById('tutChevron');
+    body.classList.toggle('show');
+    chevron.classList.toggle('open');
+  }
+
+  // Auto-uppercase order input
+  document.getElementById('orderInput').addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+    hideAlerts();
+  });
+</script>
+</body>
+</html>

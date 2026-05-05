@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>兌換系統後台</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --border: #2e2e2e;
+    --accent: #EE4D2D;
+    --accent2: #ff7750;
+    --accent-glow: rgba(238,77,45,0.2);
+    --text: #f0f0f0;
+    --text-muted: #888;
+    --success: #22c55e;
+    --success-bg: rgba(34,197,94,0.1);
+    --error: #ef4444;
+    --error-bg: rgba(239,68,68,0.1);
+    --warning: #f59e0b;
+    --warning-bg: rgba(245,158,11,0.1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header-icon {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 0 16px var(--accent-glow);
+  }
+  .header-title { font-size: 17px; font-weight: 700; }
+  .header-sub { font-size: 12px; color: var(--text-muted); }
+
+  /* ── Login ── */
+  .login-wrap {
+    padding: 40px 20px;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  .login-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .login-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 28px; }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: 1;
+    min-width: 80px;
+    padding: 14px 10px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-icon { display: block; font-size: 20px; margin-bottom: 3px; }
+
+  /* ── Content ── */
+  .content { padding: 20px; max-width: 600px; margin: 0 auto; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── Stats grid ── */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .stat-box {
+    background: var(--surface2);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-num { font-size: 28px; font-weight: 700; font-family: 'DM Mono', monospace; }
+  .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .stat-num.orange { color: var(--accent); }
+  .stat-num.green { color: var(--success); }
+  .stat-num.muted { color: var(--text-muted); }
+
+  /* ── Product rows ── */
+  .product-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .product-row:last-child { border-bottom: none; }
+  .product-name { font-size: 14px; font-weight: 600; }
+  .product-id { font-size: 11px; color: var(--text-muted); font-family: 'DM Mono', monospace; margin-top: 2px; }
+  .stock-badge {
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'DM Mono', monospace;
+    padding: 4px 12px;
+    border-radius: 20px;
+  }
+  .stock-ok { background: var(--success-bg); color: var(--success); }
+  .stock-low { background: var(--warning-bg); color: var(--warning); }
+  .stock-empty { background: var(--error-bg); color: var(--error); }
+
+  /* ── Form elements ── */
+  label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  input[type="text"], input[type="password"], select, textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    margin-bottom: 16px;
+    -webkit-appearance: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  textarea { min-height: 120px; resize: vertical; font-size: 13px; font-family: 'DM Mono', monospace; }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; padding-right: 40px; }
+
+  /* ── File upload ── */
+  .file-upload {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .file-upload:hover, .file-upload.drag { border-color: var(--accent); background: var(--accent-glow); }
+  .file-upload input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .file-icon { font-size: 32px; margin-bottom: 8px; }
+  .file-text { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .file-sub { font-size: 12px; color: var(--text-muted); }
+  .file-name { font-size: 13px; color: var(--accent); font-weight: 600; margin-top: 8px; font-family: 'DM Mono', monospace; }
+
+  /* ── Buttons ── */
+  .btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    -webkit-appearance: none;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn.secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    margin-top: 10px;
+  }
+  .btn.loading::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    animation: shimmer 1.2s infinite;
+  }
+  @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+  /* ── Alert ── */
+  .alert {
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 13px;
+    margin-bottom: 16px;
+    display: none;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.5;
+  }
+  .alert.show { display: flex; }
+  .alert-success { background: var(--success-bg); border: 1px solid rgba(34,197,94,0.3); color: #86efac; }
+  .alert-error { background: var(--error-bg); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; }
+  .alert-warning { background: var(--warning-bg); border: 1px solid rgba(245,158,11,0.3); color: #fcd34d; }
+
+  /* ── Quick add textarea ── */
+  .quick-help {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    font-family: 'DM Mono', monospace;
+    line-height: 1.6;
+  }
+
+  /* ── Order search ── */
+  .search-result {
+    background: var(--surface2);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 12px;
+    display: none;
+  }
+  .search-result.show { display: block; }
+  .result-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .result-row:last-child { border-bottom: none; }
+  .result-key { color: var(--text-muted); }
+  .result-val { font-weight: 600; font-family: 'DM Mono', monospace; font-size: 12px; }
+
+  /* ── Refresh btn ── */
+  .refresh-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    margin-left: auto;
+    display: block;
+  }
+
+  /* ── Low stock warning ── */
+  .low-stock-banner {
+    background: var(--warning-bg);
+    border: 1px solid rgba(245,158,11,0.3);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #fcd34d;
+    display: none;
+  }
+  .low-stock-banner.show { display: block; }
+
+  /* ── Spinner ── */
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+  /* ── Login wall ── */
+  #app { display: none; }
+  #loginWall { display: block; }
+</style>
+</head>
+<body>
+
+<!-- Login Wall -->
+<div id="loginWall">
+  <div class="header">
+    <div class="header-icon">⚙️</div>
+    <div>
+      <div class="header-title">系統後台</div>
+      <div class="header-sub">請先登入</div>
+    </div>
+  </div>
+  <div class="login-wrap">
+    <div class="login-title">🔐 後台登入</div>
+    <div class="login-sub">請輸入管理員金鑰才能進入</div>
+    <div class="alert alert-error" id="loginError">
+      <span>⚠️</span><span>金鑰錯誤，請重試</span>
+    </div>
+    <label>管理員金鑰（ADMIN_KEY）</label>
+    <input type="password" id="adminKeyInput" placeholder="輸入金鑰..." />
+    <button class="btn" onclick="doLogin()">登入後台</button>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app">
+  <div class="header">
+    <div class="header-icon">⚙️</div>
+    <div>
+      <div class="header-title">兌換系統後台</div>
+      <div class="header-sub" id="headerSub">載入中…</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('stats')">
+      <span class="tab-icon">📊</span>庫存
+    </div>
+    <div class="tab" onclick="switchTab('orders')">
+      <span class="tab-icon">📦</span>訂單
+    </div>
+    <div class="tab" onclick="switchTab('codes')">
+      <span class="tab-icon">🔑</span>序號
+    </div>
+    <div class="tab" onclick="switchTab('search')">
+      <span class="tab-icon">🔍</span>查詢
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ══ 庫存總覽 ══ -->
+    <div class="section active" id="sec-stats">
+      <div class="low-stock-banner" id="lowStockBanner">
+        ⚠️ 以下商品庫存不足 5 組，請盡快補充！
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          📈 總覽
+          <button class="refresh-btn" onclick="loadStats()">↻ 重新整理</button>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-num orange" id="statPending">—</div>
+            <div class="stat-label">待兌換訂單</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num green" id="statRedeemed">—</div>
+            <div class="stat-label">已兌換</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" id="statTotal">—</div>
+            <div class="stat-label">訂單總數</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" id="statCodes">—</div>
+            <div class="stat-label">序號種類</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔑 各商品庫存</div>
+        <div id="productList">
+          <div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">載入中…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ 匯入訂單 ══ -->
+    <div class="section" id="sec-orders">
+      <div class="card">
+        <div class="card-title">📦 匯入蝦皮訂單</div>
+
+        <div class="alert alert-success" id="orderSuccess"></div>
+        <div class="alert alert-error" id="orderError"></div>
+
+        <!-- 方式一：上傳 CSV -->
+        <label>方式一：上傳 CSV 檔案</label>
+        <div class="file-upload" id="orderFileZone">
+          <input type="file" accept=".csv" id="orderFile" onchange="fileSelected('orderFile','orderFileName')">
+          <div class="file-icon">📄</div>
+          <div class="file-text">點擊選擇 CSV 檔案</div>
+          <div class="file-sub">或從手機相簿/檔案選取</div>
+          <div class="file-name" id="orderFileName"></div>
+        </div>
+
+        <div class="quick-help">
+格式範例（第一行必須是標題）：<br>
+order_id,product_name,product_id<br>
+25050112ABCD,土耳其禮品卡1000,ITUNE_1000TR<br>
+25050134EFGH,奈及利亞7200,ITUNE_7200NGN
+        </div>
+
+        <button class="btn" id="orderUploadBtn" onclick="uploadOrders()">📤 上傳訂單</button>
+
+        <hr class="divider">
+
+        <!-- 方式二：手動輸入 -->
+        <label>方式二：直接貼上內容</label>
+        <textarea id="orderText" placeholder="order_id,product_name,product_id&#10;25050112ABCD,土耳其1000,ITUNE_1000TR"></textarea>
+        <button class="btn secondary" onclick="pasteOrders()">➕ 匯入文字內容</button>
+      </div>
+
+      <!-- Product ID 對照表 -->
+      <div class="card">
+        <div class="card-title">📋 商品 ID 對照表</div>
+        <div class="product-row"><div><div class="product-name">土耳其 1000 TRY</div></div><div class="product-id" style="font-size:13px">ITUNE_1000TR</div></div>
+        <div class="product-row"><div><div class="product-name">土耳其 1500 TRY</div></div><div class="product-id" style="font-size:13px">ITUNE_1500TR</div></div>
+        <div class="product-row"><div><div class="product-name">土耳其 2000 TRY</div></div><div class="product-id" style="font-size:13px">ITUNE_2000TR</div></div>
+        <div class="product-row"><div><div class="product-name">奈及利亞 7200 NGN</div></div><div class="product-id" style="font-size:13px">ITUNE_7200NGN</div></div>
+        <div class="product-row"><div><div class="product-name">奈及利亞 15000 NGN</div></div><div class="product-id" style="font-size:13px">ITUNE_15000NGN</div></div>
+      </div>
+    </div>
+
+    <!-- ══ 補充序號 ══ -->
+    <div class="section" id="sec-codes">
+      <div class="card">
+        <div class="card-title">🔑 補充序號</div>
+
+        <div class="alert alert-success" id="codeSuccess"></div>
+        <div class="alert alert-error" id="codeError"></div>
+
+        <!-- 方式一：上傳 CSV -->
+        <label>方式一：上傳 CSV 檔案</label>
+        <div class="file-upload" id="codeFileZone">
+          <input type="file" accept=".csv" id="codeFile" onchange="fileSelected('codeFile','codeFileName')">
+          <div class="file-icon">🔑</div>
+          <div class="file-text">點擊選擇序號 CSV</div>
+          <div class="file-sub">或從手機選取</div>
+          <div class="file-name" id="codeFileName"></div>
+        </div>
+
+        <div class="quick-help">
+格式範例：<br>
+product_id,code<br>
+ITUNE_1000TR,ABCD-1234-EFGH-5678<br>
+ITUNE_1000TR,IJKL-9012-MNOP-3456<br>
+ITUNE_7200NGN,1111-AAAA-2222-BBBB
+        </div>
+
+        <button class="btn" id="codeUploadBtn" onclick="uploadCodes()">📤 上傳序號</button>
+
+        <hr class="divider">
+
+        <!-- 方式二：快速新增單筆 -->
+        <label>方式二：快速新增單筆序號</label>
+        <label>選擇商品</label>
+        <select id="quickProduct">
+          <option value="ITUNE_1000TR">土耳其 1000 TRY</option>
+          <option value="ITUNE_1500TR">土耳其 1500 TRY</option>
+          <option value="ITUNE_2000TR">土耳其 2000 TRY</option>
+          <option value="ITUNE_7200NGN">奈及利亞 7200 NGN</option>
+          <option value="ITUNE_15000NGN">奈及利亞 15000 NGN</option>
+        </select>
+        <label>序號</label>
+        <input type="text" id="quickCode" placeholder="例：ABCD-1234-EFGH-5678" style="font-family:'DM Mono',monospace" />
+        <button class="btn secondary" onclick="addSingleCode()">➕ 新增這筆序號</button>
+      </div>
+    </div>
+
+    <!-- ══ 查詢訂單 ══ -->
+    <div class="section" id="sec-search">
+      <div class="card">
+        <div class="card-title">🔍 查詢 / 重置訂單</div>
+
+        <div class="alert alert-success" id="searchSuccess"></div>
+        <div class="alert alert-error" id="searchError"></div>
+        <div class="alert alert-warning" id="searchWarning"></div>
+
+        <label>輸入訂單編號</label>
+        <input type="text" id="searchInput" placeholder="例：25050112ABCDEF" style="font-family:'DM Mono',monospace;text-transform:uppercase" />
+        <button class="btn" onclick="searchOrder()">🔍 查詢</button>
+
+        <div class="search-result" id="searchResult">
+          <div class="result-row"><span class="result-key">訂單編號</span><span class="result-val" id="resOrderId">—</span></div>
+          <div class="result-row"><span class="result-key">商品名稱</span><span class="result-val" id="resProductName">—</span></div>
+          <div class="result-row"><span class="result-key">商品 ID</span><span class="result-val" id="resProductId">—</span></div>
+          <div class="result-row"><span class="result-key">兌換狀態</span><span class="result-val" id="resStatus">—</span></div>
+          <div class="result-row"><span class="result-key">兌換時間</span><span class="result-val" id="resRedeemedAt">—</span></div>
+          <hr class="divider">
+          <button class="btn secondary" id="resetBtn" onclick="resetOrder()" style="display:none">🔄 重置為未兌換</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /app -->
+
+<script>
+const API = 'https://shopee-redeem-backend-production.up.railway.app';
+let ADMIN_KEY = '';
+
+// ── Login ──────────────────────────────────
+function doLogin() {
+  const key = document.getElementById('adminKeyInput').value.trim();
+  if (!key) return;
+  ADMIN_KEY = key;
+  // Test with stats
+  fetch(`${API}/admin/stats`, { headers: { 'x-admin-key': key } })
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) {
+        document.getElementById('loginWall').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        loadStats();
+      } else {
+        document.getElementById('loginError').classList.add('show');
+      }
+    })
+    .catch(() => { document.getElementById('loginError').classList.add('show'); });
+}
+
+document.getElementById('adminKeyInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+// ── Tabs ───────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    const names = ['stats','orders','codes','search'];
+    t.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  if (name === 'stats') loadStats();
+}
+
+// ── Load Stats ─────────────────────────────
+async function loadStats() {
+  try {
+    const res = await fetch(`${API}/admin/stats`, { headers: { 'x-admin-key': ADMIN_KEY } });
+    const d = await res.json();
+    if (!d.success) return;
+
+    const o = d.orders;
+    document.getElementById('statPending').textContent = o.pending;
+    document.getElementById('statRedeemed').textContent = o.redeemed;
+    document.getElementById('statTotal').textContent = o.total;
+    document.getElementById('statCodes').textContent = d.codes.length;
+    document.getElementById('headerSub').textContent = `待兌換 ${o.pending} 筆`;
+
+    // Product list
+    const productNames = {
+      'ITUNE_1000TR': '土耳其 1000 TRY',
+      'ITUNE_1500TR': '土耳其 1500 TRY',
+      'ITUNE_2000TR': '土耳其 2000 TRY',
+      'ITUNE_7200NGN': '奈及利亞 7200 NGN',
+      'ITUNE_15000NGN': '奈及利亞 15000 NGN',
+    };
+
+    let lowStockItems = [];
+    const html = d.codes.map(c => {
+      const avail = parseInt(c.available);
+      const name = productNames[c.product_id] || c.product_id;
+      let badgeClass = avail === 0 ? 'stock-empty' : avail <= 4 ? 'stock-low' : 'stock-ok';
+      if (avail <= 4) lowStockItems.push(name);
+      return `
+        <div class="product-row">
+          <div>
+            <div class="product-name">${name}</div>
+            <div class="product-id">${c.product_id}</div>
+          </div>
+          <span class="stock-badge ${badgeClass}">${avail} 組</span>
+        </div>`;
+    }).join('');
+
+    document.getElementById('productList').innerHTML = html || '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">尚無序號資料</div>';
+
+    const banner = document.getElementById('lowStockBanner');
+    if (lowStockItems.length > 0) {
+      banner.textContent = '⚠️ 庫存不足 5 組：' + lowStockItems.join('、');
+      banner.classList.add('show');
+    } else {
+      banner.classList.remove('show');
+    }
+  } catch(e) { console.error(e); }
+}
+
+// ── File selected ──────────────────────────
+function fileSelected(inputId, nameId) {
+  const f = document.getElementById(inputId).files[0];
+  if (f) document.getElementById(nameId).textContent = '✓ ' + f.name;
+}
+
+// ── Upload Orders (CSV) ────────────────────
+async function uploadOrders() {
+  const file = document.getElementById('orderFile').files[0];
+  if (!file) return showAlert('orderError', '請先選擇 CSV 檔案');
+  const fd = new FormData();
+  fd.append('file', file);
+  await doUpload('orderUploadBtn', 'orderSuccess', 'orderError', `${API}/admin/import/orders`, fd, '訂單');
+}
+
+// ── Paste Orders ───────────────────────────
+async function pasteOrders() {
+  const text = document.getElementById('orderText').value.trim();
+  if (!text) return showAlert('orderError', '請輸入 CSV 內容');
+  const blob = new Blob([text], { type: 'text/csv' });
+  const fd = new FormData();
+  fd.append('file', blob, 'orders.csv');
+  await doUpload('orderUploadBtn', 'orderSuccess', 'orderError', `${API}/admin/import/orders`, fd, '訂單');
+}
+
+// ── Upload Codes (CSV) ─────────────────────
+async function uploadCodes() {
+  const file = document.getElementById('codeFile').files[0];
+  if (!file) return showAlert('codeError', '請先選擇 CSV 檔案');
+  const fd = new FormData();
+  fd.append('file', file);
+  await doUpload('codeUploadBtn', 'codeSuccess', 'codeError', `${API}/admin/import/codes`, fd, '序號');
+}
+
+// ── Single Code ────────────────────────────
+async function addSingleCode() {
+  const pid = document.getElementById('quickProduct').value;
+  const code = document.getElementById('quickCode').value.trim();
+  if (!code) return showAlert('codeError', '請輸入序號');
+  const csv = `product_id,code\n${pid},${code}`;
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const fd = new FormData();
+  fd.append('file', blob, 'code.csv');
+  const btn = document.getElementById('codeUploadBtn');
+  try {
+    btn.disabled = true;
+    const res = await fetch(`${API}/admin/import/codes`, {
+      method: 'POST', headers: { 'x-admin-key': ADMIN_KEY }, body: fd
+    });
+    const d = await res.json();
+    if (d.success && d.imported > 0) {
+      showAlert('codeSuccess', `✅ 序號新增成功！`);
+      document.getElementById('quickCode').value = '';
+    } else if (d.skipped > 0) {
+      showAlert('codeError', '此序號已存在，請確認是否重複。');
+    } else {
+      showAlert('codeError', d.error || '新增失敗');
+    }
+  } catch(e) { showAlert('codeError', '網路錯誤'); }
+  finally { btn.disabled = false; }
+}
+
+// ── Search Order ───────────────────────────
+async function searchOrder() {
+  const id = document.getElementById('searchInput').value.trim().toUpperCase();
+  if (!id) return;
+  hideAlerts('search');
+  try {
+    const res = await fetch(`${API}/admin/order/${id}`, { headers: { 'x-admin-key': ADMIN_KEY } });
+    const d = await res.json();
+    if (!d.success) {
+      // Fallback: use verify
+      const r2 = await fetch(`${API}/api/verify`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: id })
+      });
+      const d2 = await r2.json();
+      if (!d2.success) return showAlert('searchError', d2.error || '找不到此訂單');
+      document.getElementById('resOrderId').textContent = d2.order_id;
+      document.getElementById('resProductName').textContent = d2.product_name;
+      document.getElementById('resProductId').textContent = '—';
+      document.getElementById('resStatus').textContent = d2.redeemed ? '✅ 已兌換' : '⏳ 待兌換';
+      document.getElementById('resRedeemedAt').textContent = '—';
+      document.getElementById('resetBtn').style.display = d2.redeemed ? 'block' : 'none';
+    } else {
+      document.getElementById('resOrderId').textContent = d.order.order_id;
+      document.getElementById('resProductName').textContent = d.order.product_name;
+      document.getElementById('resProductId').textContent = d.order.product_id;
+      document.getElementById('resStatus').textContent = d.order.redeemed ? '✅ 已兌換' : '⏳ 待兌換';
+      document.getElementById('resRedeemedAt').textContent = d.order.redeemed_at ? new Date(d.order.redeemed_at).toLocaleString('zh-TW') : '—';
+      document.getElementById('resetBtn').style.display = d.order.redeemed ? 'block' : 'none';
+    }
+    document.getElementById('searchResult').classList.add('show');
+  } catch(e) { showAlert('searchError', '網路錯誤'); }
+}
+
+// ── Reset Order ────────────────────────────
+async function resetOrder() {
+  const id = document.getElementById('resOrderId').textContent;
+  if (!confirm(`確定要重置訂單 ${id} 為未兌換？`)) return;
+  try {
+    const res = await fetch(`${API}/admin/reset-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_KEY },
+      body: JSON.stringify({ order_id: id })
+    });
+    const d = await res.json();
+    if (d.success) {
+      showAlert('searchSuccess', `✅ 訂單 ${id} 已重置為未兌換`);
+      document.getElementById('resetBtn').style.display = 'none';
+      document.getElementById('resStatus').textContent = '⏳ 待兌換';
+    } else {
+      showAlert('searchError', d.error || '重置失敗');
+    }
+  } catch(e) { showAlert('searchError', '網路錯誤'); }
+}
+
+// ── Helper: Upload ─────────────────────────
+async function doUpload(btnId, successId, errorId, url, formData, label) {
+  const btn = document.getElementById(btnId);
+  btn.disabled = true; btn.classList.add('loading');
+  btn.innerHTML = `<span class="spinner"></span>上傳中…`;
+  hideAlerts(successId.replace('Success','').replace('Error',''));
+  try {
+    const res = await fetch(url, { method: 'POST', headers: { 'x-admin-key': ADMIN_KEY }, body: formData });
+    const d = await res.json();
+    if (d.success) {
+      showAlert(successId, `✅ 成功匯入 ${d.imported} 筆${label}！${d.skipped > 0 ? `（略過 ${d.skipped} 筆重複）` : ''}`);
+      loadStats();
+    } else {
+      showAlert(errorId, `❌ ${d.error || '匯入失敗'}`);
+    }
+  } catch(e) { showAlert(errorId, '❌ 網路錯誤，請稍後再試'); }
+  finally {
+    btn.disabled = false; btn.classList.remove('loading');
+    btn.innerHTML = `📤 上傳${label}`;
+  }
+}
+
+function showAlert(id, msg) {
+  const el = document.getElementById(id);
+  el.innerHTML = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 5000);
+}
+function hideAlerts(prefix) {
+  ['Success','Error','Warning'].forEach(s => {
+    const el = document.getElementById(prefix + s);
+    if (el) el.classList.remove('show');
+  });
+}
+</script>
+</body>
+</html>
